@@ -11,7 +11,7 @@ class FaceDetector:
     def __init__(self, model: str = 'fog'):
         self.model = model
 
-    @Logger.log_time
+    # @Logger.log_time
     def detect_faces(self, image: np.ndarray, method: str = 'fr') -> List[Tuple[int, int, int, int]]:
         if method == 'fr':
             return self._detect_faces_fr(image)
@@ -19,7 +19,7 @@ class FaceDetector:
             return self._detect_faces_cv2(image)
         raise Exception(f'invalid method: {method}')
 
-    @Logger.log_time
+    # @Logger.log_time
     def _detect_faces_fr(self, image: np.ndarray) -> List[Tuple[int, int, int, int]]:
         """Detect faces in an image using face_recognition."""
         face_locations = face_recognition.face_locations(image, model=self.model)

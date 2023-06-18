@@ -1,18 +1,13 @@
-import pickle
-
 import cv2
 
 from face_detector import FaceDetector
-from feature_extractor import FeatureExtractor
 from image_util import ImageUtil
-from logger import Logger
 
 
 class LivePrediction:
-    def __init__(self, model_path):
+    def __init__(self, smile_detector):
         self.face_detector = FaceDetector()
-
-        self._load_model(model_path)
+        self.smile_detector = smile_detector
 
     def run(self, source):
         """Run the live prediction on a video source."""
@@ -31,38 +26,30 @@ class LivePrediction:
         cap.release()
         cv2.destroyAllWindows()
 
-    @Logger.log_time
-    def _load_model(self, model_path):
-        """Load the model from file."""
-        with open(model_path, 'rb') as f:
-            self.model = pickle.load(f)
-
     def _get_frame(self, cap):
         """Read a frame from the video source."""
         ret, frame = cap.read()
         return ret, frame
 
-    @Logger.log_time
+    # @Logger.log_time
     def _detect_faces(self, frame):
         """Detect faces in a frame."""
-        face_locations = self.face_detector.detect_faces(frame, method='cv2')
+        face_locations = self.face_detector.detect_faces(frame, method='fr')
         detected_faces = []
 
         for face_box in face_locations:
             top, right, bottom, left = face_box
             face = ImageUtil.convert_to_gray(frame[top:bottom, left:right])
             face = ImageUtil.resize_image(face, (128, 128))
-            feature_extractor = FeatureExtractor([face])
-            features = feature_extractor.extract_features()
-            detected_faces.append((face_box, features))
+            detected_faces.append((face_box, face))
 
         return detected_faces
 
-    @Logger.log_time
+    # @Logger.log_time
     def _predict_and_display_smile(self, frame):
         """Predict and display smile label for each face in the frame."""
-        for face_box, features in self._detect_faces(frame):
-            prediction = self.model.predict(features)
+        for face_box, face in self._detect_faces(frame):
+            prediction = self.smile_detector.predict(face)
             self.display_smile_prediction(frame, prediction, face_box)
 
     def display_smile_prediction(self, frame, prediction, face_box):
