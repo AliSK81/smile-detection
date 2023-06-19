@@ -1,3 +1,5 @@
+import threading
+
 import cv2
 
 from face_detector import FaceDetector
@@ -8,6 +10,9 @@ class LivePrediction:
     def __init__(self, smile_detector):
         self.face_detector = FaceDetector()
         self.smile_detector = smile_detector
+        self.frame_count = 0
+        self.face_locations = []
+        self.detect_thread = None
 
     def run(self, source):
         """Run the live prediction on a video source."""
@@ -21,34 +26,44 @@ class LivePrediction:
 
             self._predict_and_display_smile(frame)
             cv2.imshow('Smile Detector', frame)
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
         cap.release()
         cv2.destroyAllWindows()
 
     def _get_frame(self, cap):
         """Read a frame from the video source."""
         ret, frame = cap.read()
+        self.frame_count += 1
         return ret, frame
 
-    # @Logger.log_time
+    def _start_face_detection(self, frame):
+        """Start a new thread to detect faces in a frame."""
+        self.detect_thread = threading.Thread(target=self._detect_faces, args=(frame,))
+        self.detect_thread.start()
+
     def _detect_faces(self, frame):
         """Detect faces in a frame."""
-        face_locations = self.face_detector.detect_faces(frame, method='fr')
+        self.face_locations = self.face_detector.detect_faces(frame, method='fr')
+
+    def _predict_and_display_smile(self, frame):
+        """Predict and display smile label for each face in the frame."""
+        if len(self.face_locations) == 0:
+            self._detect_faces(frame)
+        elif self.detect_thread is None or not self.detect_thread.is_alive():
+            self._start_face_detection(frame)
+
         detected_faces = []
 
-        for face_box in face_locations:
+        for face_box in self.face_locations:
             top, right, bottom, left = face_box
             face = ImageUtil.convert_to_gray(frame[top:bottom, left:right])
             face = ImageUtil.resize_image(face, (128, 128))
             detected_faces.append((face_box, face))
 
-        return detected_faces
-
-    # @Logger.log_time
-    def _predict_and_display_smile(self, frame):
-        """Predict and display smile label for each face in the frame."""
-        for face_box, face in self._detect_faces(frame):
+        for face_box, face in detected_faces:
             prediction = self.smile_detector.predict(face)
             self.display_smile_prediction(frame, prediction, face_box)
 
@@ -62,16 +77,18 @@ class LivePrediction:
         font_scale = 0.5
         thickness = 1
         text_color = (0, 0, 255)
-        background_color = (0, 255, 255)
+        background_color = (0, 255, 0)  # Change to green
 
         text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
 
         padding = 5
+
+        cv2.rectangle(frame, (left, top), (right, bottom), background_color, 2)  # Increase thickness to 2
+
         left = int(left - padding)
         top = int(top - text_size[1] - 2 * padding)
         right = int(left + text_size[0] + 2 * padding)
         bottom = int(top + text_size[1] + 2 * padding)
 
-        cv2.rectangle(frame, (left, top), (right, bottom), background_color, cv2.FILLED)
         cv2.putText(frame, text, (left + padding, top + text_size[1] + padding), font, font_scale, text_color,
                     thickness, cv2.LINE_AA, False)
