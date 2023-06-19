@@ -10,7 +10,6 @@ class LivePrediction:
     def __init__(self, smile_detector):
         self.face_detector = FaceDetector()
         self.smile_detector = smile_detector
-        self.frame_count = 0
         self.face_locations = []
         self.detect_thread = None
 
@@ -18,7 +17,7 @@ class LivePrediction:
         """Run the live prediction on a video source."""
         cap = cv2.VideoCapture(source)
         while True:
-            ret, frame = self._get_frame(cap)
+            ret, frame = cap.read()
 
             if not ret:
                 cv2.waitKey(0)
@@ -33,13 +32,7 @@ class LivePrediction:
         cap.release()
         cv2.destroyAllWindows()
 
-    def _get_frame(self, cap):
-        """Read a frame from the video source."""
-        ret, frame = cap.read()
-        self.frame_count += 1
-        return ret, frame
-
-    def _start_face_detection(self, frame):
+    def _start_face_detection_thread(self, frame):
         """Start a new thread to detect faces in a frame."""
         self.detect_thread = threading.Thread(target=self._detect_faces, args=(frame,))
         self.detect_thread.start()
@@ -53,7 +46,7 @@ class LivePrediction:
         if len(self.face_locations) == 0:
             self._detect_faces(frame)
         elif self.detect_thread is None or not self.detect_thread.is_alive():
-            self._start_face_detection(frame)
+            self._start_face_detection_thread(frame)
 
         detected_faces = []
 
@@ -76,19 +69,22 @@ class LivePrediction:
         font = cv2.FONT_HERSHEY_TRIPLEX
         font_scale = 0.5
         thickness = 1
-        text_color = (0, 0, 255)
-        background_color = (0, 255, 0)  # Change to green
+        red_color = (0, 0, 255)
+        yellow_color = (0, 255, 255)
+        green_color = (0, 255, 0)
 
         text_size, _ = cv2.getTextSize(text, font, font_scale, thickness)
 
         padding = 5
 
-        cv2.rectangle(frame, (left, top), (right, bottom), background_color, 2)  # Increase thickness to 2
+        cv2.rectangle(frame, (left, top), (right, bottom), green_color, 2)
 
         left = int(left - padding)
         top = int(top - text_size[1] - 2 * padding)
         right = int(left + text_size[0] + 2 * padding)
         bottom = int(top + text_size[1] + 2 * padding)
 
-        cv2.putText(frame, text, (left + padding, top + text_size[1] + padding), font, font_scale, text_color,
+        cv2.rectangle(frame, (left, top), (right, bottom), yellow_color, cv2.FILLED)
+
+        cv2.putText(frame, text, (left + padding, top + text_size[1] + padding), font, font_scale, red_color,
                     thickness, cv2.LINE_AA, False)
