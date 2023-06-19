@@ -7,9 +7,11 @@ from image_util import ImageUtil
 
 
 class LivePrediction:
-    def __init__(self, smile_detector):
+    def __init__(self, smile_detector, image_size, image_mode):
         self.face_detector = FaceDetector()
         self.smile_detector = smile_detector
+        self.image_size = image_size
+        self.image_mode = image_mode
         self.face_locations = []
         self.detect_thread = None
 
@@ -52,8 +54,10 @@ class LivePrediction:
 
         for face_box in self.face_locations:
             top, right, bottom, left = face_box
-            face = ImageUtil.convert_to_gray(frame[top:bottom, left:right])
-            face = ImageUtil.resize_image(face, (128, 128))
+            face = frame[top:bottom, left:right]
+            if self.image_mode == cv2.IMREAD_GRAYSCALE:
+                face = ImageUtil.convert_to_gray(face)
+            face = ImageUtil.resize_image(face, self.image_size)
             detected_faces.append((face_box, face))
 
         for face_box, face in detected_faces:

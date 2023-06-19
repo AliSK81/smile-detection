@@ -34,7 +34,7 @@ class SVMSmileDetector:
         """Test the model."""
         return self.model.score(x_test, y_test)
 
-    @Logger.log_time
+    # @Logger.log_time
     def predict(self, image):
         features = self.feature_extractor.extract_features([image])
         return self.model.predict(features)

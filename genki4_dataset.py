@@ -1,6 +1,7 @@
 import os
 from typing import Tuple, List
 
+from data_agumenter import DataAugmenter
 from face_detector import FaceDetector
 from image_util import ImageUtil
 from logger import Logger
@@ -14,6 +15,7 @@ class Genki4Dataset:
         self.images = []
         self.labels = []
         self.face_detector = FaceDetector()
+        self.data_augmenter = DataAugmenter()
         self.image_size = image_size
         self.drop_bad_images = drop_bad_images
         self.resize_images = resize_images
@@ -26,10 +28,10 @@ class Genki4Dataset:
             self.labels = [int(line.split()[0]) for line in f]
 
     @Logger.log_time
-    def _load_images(self, images_path):
+    def _load_images(self, images_path, mode):
         """Load the images from file."""
         for file in sorted(os.listdir(images_path)):
-            img = ImageUtil.load_image(os.path.join(images_path, file))
+            img = ImageUtil.load_image(os.path.join(images_path, file), mode)
 
             if self.crop_faces:
                 face_locations = self.face_detector.detect_faces(img)
@@ -45,15 +47,11 @@ class Genki4Dataset:
 
             self.images.append(img)
 
-    def load_data(self, images_path, labels_path):
-        self._load_labels(labels_path)
-        self._load_images(images_path)
-
     @Logger.log_time
-    def load_dataset(self, images_path: str, labels_path: str) -> Tuple[List, List]:
+    def load_dataset(self, images_path: str, labels_path: str, image_mode: int) -> Tuple[List, List]:
         """Load the dataset."""
         self._load_labels(labels_path)
-        self._load_images(images_path)
+        self._load_images(images_path, image_mode)
         return self.images, self.labels
 
     @Logger.log_time
@@ -69,3 +67,8 @@ class Genki4Dataset:
         with open(labels_path, "w") as f:
             for label in self.labels:
                 f.write(f"{label}\n")
+
+    def augment_data(self):
+        images = self.data_augmenter.augment_images(self.images)
+        self.images += images
+        self.labels += self.labels
