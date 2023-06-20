@@ -36,25 +36,21 @@ class DataAugmenter:
         else:
             return image
 
-    def augment_images(self, images: List[np.ndarray]):
+    def augment(self, images: List[np.ndarray], labels: [int], output_size: int = 1):
         """
         Augments the input images and returns the augmented images.
         """
         augmented_images = []
+        augmented_labels = labels * output_size
 
-        for image in images:
-            # Random rotation
-            image = self.random_rotate(image)
+        for _ in range(output_size):
+            for image, label in zip(images, labels):
+                image = self.random_rotate(image)
+                # image = self.random_shift(image)
+                # image = self.random_horizontal_flip(image)
+                augmented_images.append(image)
 
-            # Random shift
-            image = self.random_shift(image)
-
-            # Random horizontal flip
-            image = self.random_horizontal_flip(image)
-
-            augmented_images.append(image)
-
-        return augmented_images
+        return augmented_images, augmented_labels
 
 
 if __name__ == '__main__':
@@ -62,7 +58,8 @@ if __name__ == '__main__':
     da = DataAugmenter()
 
     print(image.shape)
-    im = da.augment_images([image])
-    print(im[0].shape)
+    im, la = da.augment([image], [1], 2)
     cv2.imshow('res', im[0])
+    cv2.waitKey(0)
+    cv2.imshow('res', im[1])
     cv2.waitKey(0)

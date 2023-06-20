@@ -1,7 +1,6 @@
 import os
 from typing import Tuple, List
 
-from data_agumenter import DataAugmenter
 from face_detector import FaceDetector
 from image_util import ImageUtil
 from logger import Logger
@@ -15,7 +14,6 @@ class Genki4Dataset:
         self.images = []
         self.labels = []
         self.face_detector = FaceDetector()
-        self.data_augmenter = DataAugmenter()
         self.image_size = image_size
         self.drop_bad_images = drop_bad_images
         self.resize_images = resize_images
@@ -67,8 +65,3 @@ class Genki4Dataset:
         with open(labels_path, "w") as f:
             for label in self.labels:
                 f.write(f"{label}\n")
-
-    def augment_data(self):
-        images = self.data_augmenter.augment_images(self.images)
-        self.images += images
-        self.labels += self.labels

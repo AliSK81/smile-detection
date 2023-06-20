@@ -1,6 +1,8 @@
 import cv2
 
 from cnn_smile_detector import CNNSmileDetector
+from data_agumenter import DataAugmenter
+from data_splitter import DataSplitter
 from genki4_dataset import Genki4Dataset
 from live_prediction import LivePrediction
 
@@ -27,7 +29,13 @@ def main():
                          labels_path=UPDATED_LABELS_PATH + 'clr',
                          image_mode=IMAGE_MODE)
 
-    dataset.augment_data()
+    data_splitter = DataSplitter(train_size=0.6, val_size=0.1, test_size=0.3)
+
+    x_train, y_train, x_val, y_val, x_test, y_test = data_splitter.split(data=dataset.images, labels=dataset.labels)
+
+    data_augmenter = DataAugmenter()
+    x_train, y_train = data_augmenter.augment(images=x_train, labels=y_train, output_size=3)
+
     #
     # print('Save dataset..')
     # dataset.save_dataset(images_path=UPDATED_IMAGES_PATH+'clr',
@@ -36,7 +44,10 @@ def main():
     smile_detector = CNNSmileDetector(input_shape=(*IMAGE_SIZE, IMAGE_CHANNELS))
 
     print('Train model..')
-    smile_detector.train_and_test(dataset.images, dataset.labels)
+    smile_detector.train(x_train, y_train, x_val, y_val)
+
+    print('Test model..')
+    smile_detector.test(x_test, y_test)
 
     print('Save model..')
     smile_detector.save_model(MODELS_PATH)
