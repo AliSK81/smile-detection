@@ -25,15 +25,14 @@ class CNNSmileDetector:
             layers.Dropout(0.5),
             layers.Dense(1, activation='sigmoid')
         ])
+        model.compile(optimizer='adam',
+                           loss='binary_crossentropy',
+                           metrics=['accuracy'])
         return model
 
     @Logger.log_time
     def train(self, x_train: List[np.ndarray], y_train: List[int], x_val: List[np.ndarray], y_val: List[int]) -> None:
         """Train the model."""
-        self.model.compile(optimizer='adam',
-                           loss='binary_crossentropy',
-                           metrics=['accuracy'])
-
         if len(x_train[0].shape) == 2:
             x_train = np.expand_dims(x_train, axis=-1) / 255.0
             x_val = np.expand_dims(x_val, axis=-1) / 255.0
@@ -41,7 +40,7 @@ class CNNSmileDetector:
         self.model.fit(tf.convert_to_tensor(x_train),
                        tf.convert_to_tensor(y_train),
                        batch_size=30,
-                       epochs=15,
+                       epochs=10,
                        validation_data=(tf.convert_to_tensor(x_val), tf.convert_to_tensor(y_val)))
 
     @Logger.log_time
@@ -54,7 +53,6 @@ class CNNSmileDetector:
                                              tf.convert_to_tensor(y_test))
         return accuracy
 
-    # @Logger.log_time
     def predict(self, image: np.ndarray):
         """Predict the output for a given image."""
         if len(image.shape) == 2:
